@@ -1,0 +1,1 @@
+# filtro_dinamico
