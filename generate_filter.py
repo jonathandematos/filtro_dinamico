@@ -8,15 +8,32 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.svm import SVC
 from sklearn.externals import joblib
+from sklearn.utils import shuffle
+import sys
 #
-nr_features = 162
-tissues = "data/crc_pftas/features.txt"
-percentage = 0.15
+if(len(sys.argv) != 7):
+    print("generate_filter.py [nr_features] [tissues] [percentage] [dest_dir] [relevant] [irrelevant]")
+    exit(0)
+#
+nr_features = int(sys.argv[1])
+tissues = sys.argv[2]
+percentage = float(sys.argv[3])
 random_state = 10
-dest_dir = "filters/pftas/"
+dest_dir = sys.argv[4]
 #
-relevant = [1, 2, 3, 4]
-irrelevant = [5, 6, 7, 8]
+str_relevant = sys.argv[5]
+relevant = list()
+for i in str_relevant.split(","):
+    relevant.append(int(i))
+str_irrelevant = sys.argv[6]
+irrelevant = list()
+for i in str_irrelevant.split(","):
+    irrelevant.append(int(i))
+print(relevant)
+print(irrelevant)
+#
+#relevant = [1, 2, 3, 4]
+#irrelevant = [5, 6, 7, 8]
 #
 files_ref_name = ""
 for i in relevant:
@@ -24,7 +41,7 @@ for i in relevant:
 files_ref_name += "-"
 for i in irrelevant:
     files_ref_name += str(i)
-files_ref_name += "{:.2f}-{}".format(percentage, random_state)
+files_ref_name += "-{:.2f}-{}".format(percentage, random_state)
 #
 #
 #
@@ -73,25 +90,50 @@ def load_data(X, Y, Z, filename):
 X = list()
 Y = list()
 Z = list()
+W = list()
+#
+#   Load CRC Dataset
 #
 f = open(tissues, "r")
+nr_elem_classes = dict()
 for i in f:
     line = i[:-1].split(";")
     label = int(line[0][0:2])
     x = np.array(line[2:-1])
-    #
-    #print(len(x))
+    # discard bad images (with less attributes due to image format)
     if(len(x) == nr_features):
-        X.append(x.astype(np.float))
-        if(label in relevant):
-            Y.append(0)
+        if(nr_elem_classes.has_key(label)):
+            nr_elem_classes[label] += 1
         else:
+            nr_elem_classes[label] = 1
+        # selection of relevant and irrelevant
+        if(label in relevant):
+            X.append(x.astype(np.float))
+            Z.append(line[1])
+            Y.append(0)
+            W.append(label)
+        if(label in irrelevant):
+            X.append(x.astype(np.float))
+            Z.append(line[1])
             Y.append(1)
-        Z.append(line[1])
+            W.append(label)
     else:
 	    print("{} {}".format(line[0],line[1]))
 #
-print(len(X), len(Y), len(Z))     
+print(len(X), len(Y), len(Z))
+# shuffle crc images to remove some images to keep the filter balanced
+X_sh, Y_sh, Z_sh, W_sh = shuffle(X, Y, Z, W, random_state=10)
+rel_num = 0
+irrel_num = 0
+for i in relevant:
+    rel_num += nr_elem_classes[i]
+for i in irrelevant:
+    irrel_num += nr_elem_classes[i]
+print(irrel_num, rel_num)
+exit(0) 
+#
+for i in nr_elem_classes.keys():
+    print(nr_elem_classes[i])
 #
 X_train, X_test, Y_train, Y_test, Z_train, Z_test = train_test_split(X, Y, Z, test_size=percentage, random_state=10)
 #
@@ -106,11 +148,10 @@ for i in scores:
     clf = GridSearchCV(SVC(), tuned_parameters, cv=5, scoring=i, n_jobs=4)
     clf.fit(X_train, Y_train)
     grid_report(clf, X_test, Y_test)
-    joblib.dump(clf,'filter-'dest_dir+files_ref_name+'.pkl')
-    dump_image_names(Y_test, Z_test, 'images_test-'+dest_dir+files_ref_name+'.txt')
-    dump_image_names(Y_train, Z_train, 'images_train-'+dest_dir+files_ref_name+'.txt')
+    joblib.dump(clf,dest_dir+'filter-'+files_ref_name+'.pkl')
+    dump_image_names(Y_test, Z_test, dest_dir+'images_test-'+files_ref_name+'.txt')
+    dump_image_names(Y_train, Z_train, dest_dir+'images_train-'+files_ref_name+'.txt')
 #
-
 #
 #print(len(X_train), len(Y_train), len(Z_train))
 #
