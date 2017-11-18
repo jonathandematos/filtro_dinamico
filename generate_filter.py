@@ -129,6 +129,32 @@ for i in relevant:
     rel_num += nr_elem_classes[i]
 for i in irrelevant:
     irrel_num += nr_elem_classes[i]
+#
+a = rel_num / len(relevant)
+dist_rel = [0 for i in range(len(relevant))] 
+dist_irrel = [0 for i in range(len(irrelevant))] 
+if(rel_num < irrel_num):
+    b = rel_num / len(irrelevant)
+    for i in range(len(dist_rel)):
+        dist_rel[i] = b
+    for i in range(len(dist_irrel)):
+        dist_irrel[i] = a
+else:
+    b = irrel_num / len(relevant)
+    for i in range(len(dist_rel)):
+        dist_rel[i] = b
+    for i in range(len(dist_irrel)):
+        dist_irrel[i] = a
+print(dist_irrel, dist_rel)
+#
+X_bal = list()
+Y_bal = list()
+Z_bal = list()
+W_bal = list()
+for i in range(len(X)):
+    if(W_sh[i] in irrelevant):
+        
+#
 print(irrel_num, rel_num)
 exit(0) 
 #
