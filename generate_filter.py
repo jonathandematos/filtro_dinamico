@@ -153,15 +153,35 @@ Z_bal = list()
 W_bal = list()
 for i in range(len(X)):
     if(W_sh[i] in irrelevant):
-        
+        a = irrelevant.index(W_sh[i])
+        if(dist_irrel[a] > 0):
+            dist_irrel[a] -= 1
+            X_bal.append(X_sh[i])        
+            Y_bal.append(Y_sh[i])        
+            Z_bal.append(Z_sh[i])        
+            W_bal.append(W_sh[i])        
+    if(W_sh[i] in relevant):
+        a = relevant.index(W_sh[i])
+        if(dist_rel[a] > 0):
+            dist_rel[a] -= 1
+            X_bal.append(X_sh[i])        
+            Y_bal.append(Y_sh[i])        
+            Z_bal.append(Z_sh[i])        
+            W_bal.append(W_sh[i]) 
 #
+print(dist_irrel, dist_rel)
 print(irrel_num, rel_num)
-exit(0) 
+print(len(X_bal), len(Y_bal))
 #
 for i in nr_elem_classes.keys():
     print(nr_elem_classes[i])
 #
-X_train, X_test, Y_train, Y_test, Z_train, Z_test = train_test_split(X, Y, Z, test_size=percentage, random_state=10)
+X_train, X_test, Y_train, Y_test, Z_train, Z_test, W_train, W_test = train_test_split(X_bal, Y_bal, Z_bal, W_bal, test_size=percentage, random_state=10)
+#
+a = [0 for i in range(len(irrelevant)+len(relevant)+1)]
+for i in range(len(X_train)):
+    a[W_train[i]] += 1
+print(a)
 #
 tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
                      'C': [1, 10, 100, 1000]},
