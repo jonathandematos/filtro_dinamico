@@ -5,13 +5,18 @@ import sys
 import numpy as np
 from sklearn.externals import joblib
 #
-if(len(sys.argv) != 3):
-    print("filter_images.py [dataset] [filter]")
+if(len(sys.argv) != 4):
+    print("filter_images.py [dataset] [filter] [nr_features]")
     exit(0)
 #
 breakhis = sys.argv[1]
 filter_file = sys.argv[2]
-nr_features = 162
+nr_features = int(sys.argv[3])
+print_stats = False
+print_excluded = True
+#
+if( print_stats ):
+    print(sys.argv)
 #
 def load_dataset(filename):
     f = open(filename, "r")
@@ -25,7 +30,7 @@ def load_dataset(filename):
         #
         x = np.array(line[2:-1])
         if(len(x) == nr_features):       
-            X.append(x)
+            X.append(x.astype(np.float))
             Y_ext.append(line[0])
             Z.append(line[1])
             if(line[0] == 'adenosis'):
@@ -53,7 +58,8 @@ def load_dataset(filename):
             #if(line[0] == 'TA'):
             	Y.append(int(3))
         else:
-            print("Erro: {} {}".format(line[1], len(x)))
+            if( print_stats ):
+                print("Erro: {} {}".format(line[1], len(x)))
     #
     f.close()
     return X, Y, Z, Y_ext
@@ -74,6 +80,20 @@ def generate_patient_image(X, Y, Z, Y_ext):
 #
 #
 #
+def generate_patient_list(X, Y, Z, Y_ext):
+    patient = list()
+    images = list()
+    for i in range(len(X)):
+        a = Z[i].split("-")
+        # SOB_M_PC-14-19440-40-021-137-155.png
+        if(a[0]+"-"+a[1]+"-"+a[2] not in patient):
+            patient.append(a[0]+"-"+a[1]+"-"+a[2])
+        if(a[0]+"-"+a[1]+"-"+a[2]+"-"+a[3]+"-"+a[4] not in images):
+            images.append(a[0]+"-"+a[1]+"-"+a[2]+"-"+a[3]+"-"+a[4])
+    return patient, images
+#
+#
+#
 X, Y, Z, Y_ext = load_dataset(breakhis)
 #
 clf = joblib.load(filter_file)
@@ -88,11 +108,12 @@ for i in range(len(X)):
         keep += 1
     total += 1
 #
-print("{} mantidas de {}".format(keep, total))
+#print("{} mantidas de {}".format(keep, total))
 #
-patients, images =  generate_patient_image(X, Y, Z, Y_ext)
+patients, images =  generate_patient_list(X, Y, Z, Y_ext)
 #
-print(len(patients.keys()), len(images.keys()))
+if( print_stats ):
+    print("Original: {} pacientes, {} imagens, {} patches".format(len(patients), len(images), len(X)))
 #
 X_filtered = list()
 Y_filtered = list()
@@ -105,7 +126,32 @@ for i in range(len(X)):
          Z_filtered.append(Z[i])
          Y_ext_filtered.append(Y_ext[i])
 #
-patients, images =  generate_patient_image(X_filtered, Y_filtered, Z_filtered, Y_ext_filtered)
+patients_f, images_f =  generate_patient_list(X_filtered, Y_filtered, Z_filtered, Y_ext_filtered)
 #
-print(len(patients.keys()), len(images.keys()))
-
+if( print_stats ):
+    print("Filtrado: {} pacientes, {} imagens, {} patches".format(len(patients_f), len(images_f), len(X_filtered)))
+#
+#
+for i in patients:
+    if(i not in patients_f):
+        if( print_excluded ):
+            for j in range(len(Z)):
+                a = Z[j].split("-")
+                # SOB_M_PC-14-19440-40-021-137-155.png
+                if(a[0]+"-"+a[1]+"-"+a[2] == i):
+                    print("{};{};".format(Y_ext[j], Z[j]), end="")
+                    for k in X[j]:
+                        print("{:.6f};".format(k),end="")
+                    print()
+        if( print_stats ):
+            print("Paciente excluido: {}".format(i))
+#
+for i in range(len(X_filtered)):
+    print("{};{};".format(Y_ext_filtered[i], Z_filtered[i]), end="")
+    for j in X_filtered[i]:
+        print("{:.6f};".format(j),end="")
+    print()
+#for i in images:
+#    if(i not in images_f):
+#        print(i)
+#

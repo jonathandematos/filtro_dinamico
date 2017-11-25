@@ -10,7 +10,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix
 #
 if(len(sys.argv) != 6):
-    print("classify.py [nr_features] [zoom] [features] [fold_file] [inductor]")
+    print("classify.py [nr_features] [zoom] [features_file] [fold_file] [inductor]")
     exit(0)
 #
 nr_features = 162

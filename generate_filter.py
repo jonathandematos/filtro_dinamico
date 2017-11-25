@@ -29,8 +29,9 @@ str_irrelevant = sys.argv[6]
 irrelevant = list()
 for i in str_irrelevant.split(","):
     irrelevant.append(int(i))
-print(relevant)
-print(irrelevant)
+#print("Conjunto de relevantes e irrelevantes")
+#print(relevant)
+#print(irrelevant)
 #
 #relevant = [1, 2, 3, 4]
 #irrelevant = [5, 6, 7, 8]
@@ -87,6 +88,72 @@ def load_data(X, Y, Z, filename):
 #
 #
 #
+def dataset_balancing(X_sh, Y_sh, Z_sh, W_sh, nr_elem_classes, relevant, irrelevant):
+    rel_num = 0
+    irrel_num = 0
+    for i in relevant:
+        rel_num += nr_elem_classes[i]
+    for i in irrelevant:
+        irrel_num += nr_elem_classes[i]
+    #
+#    print("Quantidade das classes")
+#    print(rel_num, irrel_num)
+    a = rel_num / len(relevant)
+#    print(a)
+    dist_rel = [0 for i in range(len(relevant))] 
+    dist_irrel = [0 for i in range(len(irrelevant))] 
+    if(rel_num < irrel_num):
+        b = rel_num / len(irrelevant)
+        for i in range(len(dist_rel)):
+            dist_rel[i] = a
+        for i in range(len(dist_irrel)):
+            dist_irrel[i] = b
+    else:
+        b = irrel_num / len(relevant)
+        for i in range(len(dist_rel)):
+            dist_rel[i] = b
+        for i in range(len(dist_irrel)):
+            dist_irrel[i] = a
+    print("Distribuicao das classes")
+    print(dist_rel, dist_irrel)
+    #
+    X_bal = list()
+    Y_bal = list()
+    Z_bal = list()
+    W_bal = list()
+    for i in range(len(X)):
+        if(W_sh[i] in irrelevant):
+            a = irrelevant.index(W_sh[i])
+            if(dist_irrel[a] > 0):
+                dist_irrel[a] -= 1
+                X_bal.append(X_sh[i])        
+                Y_bal.append(Y_sh[i])        
+                Z_bal.append(Z_sh[i])        
+                W_bal.append(W_sh[i])        
+        if(W_sh[i] in relevant):
+            a = relevant.index(W_sh[i])
+            if(dist_rel[a] > 0):
+                dist_rel[a] -= 1
+                X_bal.append(X_sh[i])        
+                Y_bal.append(Y_sh[i])        
+                Z_bal.append(Z_sh[i])        
+                W_bal.append(W_sh[i]) 
+    #
+#    print("Distribuicao das classes depois da equalizacao")
+#    print(dist_irrel, dist_rel)
+#    print("Quantidades das 2 classes")
+#    print(irrel_num, rel_num)
+#    print("Tamanhos das classes balanceadas")
+#    print(len(X_bal), len(Y_bal))
+    #
+#    print("Elementos por classe")
+#    for i in nr_elem_classes.keys():
+#        print(nr_elem_classes[i])
+    #
+    return X_bal, Y_bal, Z_bal, W_bal
+#
+#
+#
 X = list()
 Y = list()
 Z = list()
@@ -120,68 +187,18 @@ for i in f:
     else:
 	    print("{} {}".format(line[0],line[1]))
 #
-print(len(X), len(Y), len(Z))
+#print(len(X), len(Y), len(Z))
 # shuffle crc images to remove some images to keep the filter balanced
 X_sh, Y_sh, Z_sh, W_sh = shuffle(X, Y, Z, W, random_state=10)
-rel_num = 0
-irrel_num = 0
-for i in relevant:
-    rel_num += nr_elem_classes[i]
-for i in irrelevant:
-    irrel_num += nr_elem_classes[i]
-#
-a = rel_num / len(relevant)
-dist_rel = [0 for i in range(len(relevant))] 
-dist_irrel = [0 for i in range(len(irrelevant))] 
-if(rel_num < irrel_num):
-    b = rel_num / len(irrelevant)
-    for i in range(len(dist_rel)):
-        dist_rel[i] = b
-    for i in range(len(dist_irrel)):
-        dist_irrel[i] = a
-else:
-    b = irrel_num / len(relevant)
-    for i in range(len(dist_rel)):
-        dist_rel[i] = b
-    for i in range(len(dist_irrel)):
-        dist_irrel[i] = a
-print(dist_irrel, dist_rel)
-#
-X_bal = list()
-Y_bal = list()
-Z_bal = list()
-W_bal = list()
-for i in range(len(X)):
-    if(W_sh[i] in irrelevant):
-        a = irrelevant.index(W_sh[i])
-        if(dist_irrel[a] > 0):
-            dist_irrel[a] -= 1
-            X_bal.append(X_sh[i])        
-            Y_bal.append(Y_sh[i])        
-            Z_bal.append(Z_sh[i])        
-            W_bal.append(W_sh[i])        
-    if(W_sh[i] in relevant):
-        a = relevant.index(W_sh[i])
-        if(dist_rel[a] > 0):
-            dist_rel[a] -= 1
-            X_bal.append(X_sh[i])        
-            Y_bal.append(Y_sh[i])        
-            Z_bal.append(Z_sh[i])        
-            W_bal.append(W_sh[i]) 
-#
-print(dist_irrel, dist_rel)
-print(irrel_num, rel_num)
-print(len(X_bal), len(Y_bal))
-#
-for i in nr_elem_classes.keys():
-    print(nr_elem_classes[i])
-#
+# extratificacao da base
+X_bal, Y_bal, Z_bal, W_bal = dataset_balancing(X_sh, Y_sh, Z_sh, W_sh, nr_elem_classes, relevant, irrelevant)
+# 
 X_train, X_test, Y_train, Y_test, Z_train, Z_test, W_train, W_test = train_test_split(X_bal, Y_bal, Z_bal, W_bal, test_size=percentage, random_state=10)
 #
-a = [0 for i in range(len(irrelevant)+len(relevant)+1)]
-for i in range(len(X_train)):
-    a[W_train[i]] += 1
-print(a)
+#a = [0 for i in range(len(irrelevant)+len(relevant)+1)]
+#for i in range(len(X_train)):
+#    a[W_train[i]] += 1
+#print(a)
 #
 tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
                      'C': [1, 10, 100, 1000]},
@@ -191,7 +208,7 @@ tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3, 1e-4],
 scores = ['accuracy']
 #
 for i in scores:
-    clf = GridSearchCV(SVC(), tuned_parameters, cv=5, scoring=i, n_jobs=4)
+    clf = GridSearchCV(SVC(), tuned_parameters, cv=5, scoring=i, n_jobs=12, verbose=1)
     clf.fit(X_train, Y_train)
     grid_report(clf, X_test, Y_test)
     joblib.dump(clf,dest_dir+'filter-'+files_ref_name+'.pkl')
